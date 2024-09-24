@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       return new NextResponse("No image provided", { status: 400 });
     }
 
-    // Send the image to the Computer Vision model for classification (replace with actual CV model API)
+    // Send the image to the Computer Vision model for classification
     const cvResponse = await fetch("CV_MODEL_ENDPOINT", {
       method: "POST",
       headers: {
@@ -19,15 +19,23 @@ export async function POST(req: NextRequest) {
       body: file, // Assuming the model accepts binary image data
     });
 
+    if (!cvResponse.ok) {
+      return new NextResponse("Failed to classify the animal", { status: 500 });
+    }
+
     const cvData = await cvResponse.json();
     const animal = cvData.animal; // Assuming the model returns the classified animal
 
-    // Simulate a Wikipedia API request to retrieve animal description and danger status (replace with actual API call)
+    // Fetch the animal's description from Wikipedia
     const wikiResponse = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${animal}`);
+    if (!wikiResponse.ok) {
+      return new NextResponse("Failed to retrieve animal info from Wikipedia", { status: 500 });
+    }
+
     const wikiData = await wikiResponse.json();
 
-    // Simulate determining if the animal is dangerous based on Wikipedia description (this can be more advanced)
-    const isDangerous = wikiData.extract.includes("dangerous");
+    // Determine if the animal is dangerous based on Wikipedia data (custom logic)
+    const isDangerous = wikiData.extract.includes("dangerous") || wikiData.extract.includes("predator");
 
     return NextResponse.json({
       animal,
