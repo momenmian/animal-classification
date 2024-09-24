@@ -4,25 +4,28 @@ import { useState } from "react";
 
 export default function AnimalDetectionPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [classification, setClassification] = useState<string | null>(null);
   const [isDangerous, setIsDangerous] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Handle the image upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedImage(file);
+      setImagePreview(URL.createObjectURL(file)); // Preview the image
     }
   };
 
-  // Function to simulate image classification and danger detection
+  // Function to classify the uploaded image
   const classifyImage = async () => {
     if (!selectedImage) return;
 
     setLoading(true);
+    setError(null);
 
-    // Call to your backend API or external CV model to classify the image
     const formData = new FormData();
     formData.append("image", selectedImage);
 
@@ -33,14 +36,19 @@ export default function AnimalDetectionPage() {
         body: formData,
       });
 
+      if (!response.ok) {
+        throw new Error("Failed to classify the image");
+      }
+
       const data = await response.json();
       setClassification(data.animal);
       setIsDangerous(data.isDangerous);
     } catch (error) {
       console.error("Error during classification:", error);
+      setError("Error classifying the image. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -54,6 +62,13 @@ export default function AnimalDetectionPage() {
         onChange={handleImageUpload}
         className="mb-4"
       />
+
+      {imagePreview && (
+        <div className="mb-4">
+          <img src={imagePreview} alt="Selected Animal" className="max-w-xs h-auto" />
+        </div>
+      )}
+
       <button
         onClick={classifyImage}
         className="bg-blue-500 text-white px-4 py-2 rounded"
@@ -71,6 +86,9 @@ export default function AnimalDetectionPage() {
           </p>
         </div>
       )}
+
+      {/* Display error message */}
+      {error && <p className="text-red-500 mt-4">{error}</p>}
     </div>
   );
 }
